@@ -8,10 +8,10 @@ import (
 )
 
 type MusicVideoFavouriteLibrary struct {
-	UID       string                    `gorm:"primaryKey;size:36" json:"uid"`
-	Items     []MusicVideoFavouriteItem `gorm:"-" json:"items"`
-	CreatedAt time.Time                 `json:"created_at"`
-	UpdatedAt time.Time                 `json:"updated_at"`
+	UID         string                    `gorm:"primaryKey;size:36" json:"uid"`
+	Items       []MusicVideoFavouriteItem `gorm:"-" json:"items"`
+	CreatedDate time.Time                 `gorm:"column:created_date;autoCreateTime" json:"created_date"`
+	UpdatedDate time.Time                 `gorm:"column:updated_date;autoUpdateTime" json:"-"`
 }
 
 func (mvfl *MusicVideoFavouriteLibrary) BeforeCreate(tx *gorm.DB) (err error) {

@@ -16,8 +16,8 @@ type MusicVideo struct {
 	Music       string    `json:"music"`       // audio file/path
 	Viewer      int       `json:"viewer"`
 	Likes       int       `json:"likes"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedDate time.Time `gorm:"column:created_date;autoCreateTime" json:"created_date"`
+	UpdatedDate time.Time `gorm:"column:updated_date;autoUpdateTime" json:"-"`
 }
 
 func (mv *MusicVideo) BeforeCreate(tx *gorm.DB) (err error) {

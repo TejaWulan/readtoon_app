@@ -11,6 +11,8 @@ type CoinPurchaseTransaction struct {
 	UID                 string    `gorm:"primaryKey;size:36" json:"uid"`
 	AccountUID          string    `json:"account_uid"` // who bought the coins
 	AccountName         string    `json:"account_name"`
+	CreatedDate         time.Time `gorm:"column:created_date;autoCreateTime" json:"created_date"`
+	UpdatedDate         time.Time `gorm:"column:updated_date;autoUpdateTime" json:"-"`
 	CoinUID             string    `json:"coin_uid"`                        // related to Coin.UID (optional)
 	AmountCoin          int64     `json:"amount_coin"`                     // how many coins purchased
 	PriceIDR            float64   `json:"price_idr"`                       // price paid in rupiah
