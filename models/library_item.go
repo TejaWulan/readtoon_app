@@ -2,26 +2,16 @@ package models
 
 import (
 	"time"
-
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type LibraryItem struct {
-	UID          string    `gorm:"primaryKey;size:36" json:"uid"` // UUID string
+	ComicUID     string    `json:"comic_uid"`
 	CreatedDate  time.Time `gorm:"column:created_date;autoCreateTime" json:"created_date"`
 	UpdatedDate  time.Time `gorm:"column:updated_date;autoUpdateTime" json:"-"`
-	AccountUID   string    `json:"account_uid"`
-	ComicUID     string    `json:"comic_uid"`
+	AccountName  string    `json:"account_name"` // nama_akun-owner
 	ComicPhoto   string    `json:"comic_photo"`
 	TotalEpisode int       `json:"total_episode"`
 	Likes        int       `json:"likes"`
 	Viewer       int       `json:"viewer"`
-}
-
-func (l *LibraryItem) BeforeCreate(tx *gorm.DB) (err error) {
-	if l.UID == "" {
-		l.UID = uuid.New().String()
-	}
-	return
+	Owner        Canvas    `gorm:"foreignKey:AccountName;references:AccountName"`
 }
