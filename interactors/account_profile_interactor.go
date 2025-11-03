@@ -1,13 +1,11 @@
 package interactors
 
 import (
-	"errors"
 	"time"
 
 	"readtoon_app/models"
+	"readtoon_app/utility"
 
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -15,85 +13,138 @@ type AccountInteractor struct {
 	DB *gorm.DB
 }
 
-// CreateAccountProfile creates a new user profile
-func (i *AccountInteractor) CreateAccountProfile(name, email, password, createdBy string) (*models.AccountProfile, error) {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
+func CreateAccountProfile(db *gorm.DB, body map[string]any) (int, string, any) {
+	bodyAccess := utility.MappingUnmarshal(body["access"])
+	bodyPayload := utility.MappingUnmarshal(body["payload"])
+
+	if bodyAccess == nil || bodyPayload == nil {
+		return 7400, "cannot_empty:access_or_payload", nil
 	}
 
-	account := &models.AccountProfile{
-		UID:         uuid.NewString(),
+	name, _ := bodyPayload["name"].(string)
+	email, _ := bodyPayload["email"].(string)
+	password, _ := bodyPayload["password"].(string)
+	avatar, _ := bodyPayload["avatar_photo"].(string)
+
+	if name == "" || email == "" || password == "" {
+		return 7401, "missing_required_fields:name_email_password", nil
+	}
+
+	account := models.AccountProfile{
+		UID:         utility.GenerateUUID(),
 		Name:        name,
 		Email:       email,
-		Password:    string(hashed),
-		CreatedBy:   createdBy,
+		Password:    utility.HashPassword(password),
+		AvatarPhoto: avatar,
 		CreatedDate: time.Now(),
+		CreatedBy:   bodyAccess["user_uid"].(string),
 	}
 
-	if err := i.DB.Create(account).Error; err != nil {
-		return nil, err
+	if err := db.Create(&account).Error; err != nil {
+		return 7500, "failed_to_create_account", err.Error()
 	}
 
-	return account, nil
+	return 7200, "success_create_account", account
 }
 
 // ChangeName updates user's name
-func (i *AccountInteractor) ChangeName(uid, newName, updatedBy string) error {
-	return i.DB.Model(&models.AccountProfile{}).
+
+func ChangeName(db *gorm.DB, body map[string]any) (int, string, any) {
+	bodyAccess := utility.MappingUnmarshal(body["access"])
+	bodyPayload := utility.MappingUnmarshal(body["payload"])
+	if bodyAccess == nil || bodyPayload == nil {
+		return 7400, "cannot_empty:access_or_payload", nil
+	}
+
+	uid := bodyAccess["user_uid"].(string)
+	newName, _ := bodyPayload["name"].(string)
+	if newName == "" {
+		return 7401, "missing_field:name", nil
+	}
+
+	if err := db.Model(&models.AccountProfile{}).
 		Where("uid = ?", uid).
-		Updates(map[string]interface{}{
-			"name":         newName,
-			"updated_by":   updatedBy,
-			"updated_date": time.Now(),
-		}).Error
+		Update("name", newName).Error; err != nil {
+		return 7500, "failed_to_update_name", err.Error()
+	}
+
+	return 7200, "success_change_name", nil
 }
 
-// ChangeEmail updates user's email
-func (i *AccountInteractor) ChangeEmail(uid, newEmail, updatedBy string) error {
-	return i.DB.Model(&models.AccountProfile{}).
+// ✅ CHANGE EMAIL
+func ChangeEmail(db *gorm.DB, body map[string]any) (int, string, any) {
+	bodyAccess := utility.MappingUnmarshal(body["access"])
+	bodyPayload := utility.MappingUnmarshal(body["payload"])
+	if bodyAccess == nil || bodyPayload == nil {
+		return 7400, "cannot_empty:access_or_payload", nil
+	}
+
+	uid := bodyAccess["user_uid"].(string)
+	newEmail, _ := bodyPayload["email"].(string)
+	if newEmail == "" {
+		return 7401, "missing_field:email", nil
+	}
+
+	if err := db.Model(&models.AccountProfile{}).
 		Where("uid = ?", uid).
-		Updates(map[string]interface{}{
-			"email":        newEmail,
-			"updated_by":   updatedBy,
-			"updated_date": time.Now(),
-		}).Error
+		Update("email", newEmail).Error; err != nil {
+		return 7500, "failed_to_update_email", err.Error()
+	}
+
+	return 7200, "success_change_email", nil
 }
 
-// ChangePassword updates user's password (hashed)
-func (i *AccountInteractor) ChangePassword(uid, oldPassword, newPassword, updatedBy string) error {
+// ✅ CHANGE PASSWORD
+func ChangePassword(db *gorm.DB, body map[string]any) (int, string, any) {
+	bodyAccess := utility.MappingUnmarshal(body["access"])
+	bodyPayload := utility.MappingUnmarshal(body["payload"])
+	if bodyAccess == nil || bodyPayload == nil {
+		return 7400, "cannot_empty:access_or_payload", nil
+	}
+
+	uid := bodyAccess["user_uid"].(string)
+	oldPassword, _ := bodyPayload["old_password"].(string)
+	newPassword, _ := bodyPayload["new_password"].(string)
+	if oldPassword == "" || newPassword == "" {
+		return 7401, "missing_field:old_password_or_new_password", nil
+	}
+
 	var account models.AccountProfile
-	if err := i.DB.First(&account, "uid = ?", uid).Error; err != nil {
-		return err
+	if err := db.First(&account, "uid = ?", uid).Error; err != nil {
+		return 7404, "account_not_found", err.Error()
 	}
 
-	// Verify old password
-	if err := bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(oldPassword)); err != nil {
-		return errors.New("invalid old password")
+	if !utility.CheckPasswordHash(oldPassword, account.Password) {
+		return 7402, "invalid_old_password", nil
 	}
 
-	// Hash new password
-	hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
+	hashed := utility.HashPassword(newPassword)
+	if err := db.Model(&account).Update("password", hashed).Error; err != nil {
+		return 7500, "failed_to_update_password", err.Error()
 	}
 
-	return i.DB.Model(&models.AccountProfile{}).
-		Where("uid = ?", uid).
-		Updates(map[string]interface{}{
-			"password":     string(hashed),
-			"updated_by":   updatedBy,
-			"updated_date": time.Now(),
-		}).Error
+	return 7200, "success_change_password", nil
 }
 
-// UpdateAvatarPhoto changes the user's avatar photo URL
-func (i *AccountInteractor) UpdateAvatarPhoto(uid, photoPath, updatedBy string) error {
-	return i.DB.Model(&models.AccountProfile{}).
+// ✅ UPDATE AVATAR PHOTO
+func UpdateAvatarPhoto(db *gorm.DB, body map[string]any) (int, string, any) {
+	bodyAccess := utility.MappingUnmarshal(body["access"])
+	bodyPayload := utility.MappingUnmarshal(body["payload"])
+	if bodyAccess == nil || bodyPayload == nil {
+		return 7400, "cannot_empty:access_or_payload", nil
+	}
+
+	uid := bodyAccess["user_uid"].(string)
+	newPhoto, _ := bodyPayload["avatar_photo"].(string)
+	if newPhoto == "" {
+		return 7401, "missing_field:avatar_photo", nil
+	}
+
+	if err := db.Model(&models.AccountProfile{}).
 		Where("uid = ?", uid).
-		Updates(map[string]interface{}{
-			"avatar_photo": photoPath,
-			"updated_by":   updatedBy,
-			"updated_date": time.Now(),
-		}).Error
+		Update("avatar_photo", newPhoto).Error; err != nil {
+		return 7500, "failed_to_update_avatar_photo", err.Error()
+	}
+
+	return 7200, "success_update_avatar_photo", nil
 }

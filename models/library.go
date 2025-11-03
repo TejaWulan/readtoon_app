@@ -8,14 +8,15 @@ import (
 )
 
 type Library struct {
-	UID            string         `gorm:"primaryKey;size:36" json:"uid"`
-	CreatedDate    time.Time      `gorm:"column:created_date;autoCreateTime" json:"created_date"`
-	UpdatedDate    time.Time      `gorm:"column:updated_date;autoUpdateTime" json:"-"`
-	Items          []LibraryItem  `gorm:"-" json:"items"` // gorm "-" means stored as JSON or separate table in actual DB design
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
-	AccountProfile AccountProfile `gorm:"foreignKey:AcccountUID;references:UID"`
-	Account_Name   AccountProfile `gorm:"foreignKey:AcccountName;references:Name"`
+	UID         string      `gorm:"column:uniqueid;primaryKey" json:"uid"`
+	CreatedDate time.Time   `gorm:"column:created_date;autoCreateTime" json:"created_date"`
+	UpdatedDate time.Time   `gorm:"column:updated_date;autoUpdateTime" json:"-"`
+	Items       StringArray `gorm:"column:items" json:"items"`
+	CreatedAt   time.Time   `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt   time.Time   `gorm:"column:updated_at" json:"updated_at"`
+
+	AccountUID     string         `gorm:"column:account_uid;size:36" json:"account_uid"` // foreign key field
+	AccountProfile AccountProfile `gorm:"foreignKey:AccountUID;references:UID"`          // relation
 }
 
 func (l *Library) BeforeCreate(tx *gorm.DB) (err error) {

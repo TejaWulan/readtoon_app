@@ -9,6 +9,7 @@ import (
 
 type Configuration struct {
 	PGSQL_HOST     string
+	API_VERSION    string
 	PGSQL_PORT     string
 	PGSQL_USER     string
 	PGSQL_PASSWORD string
@@ -24,6 +25,7 @@ func LoadConfig() *Configuration {
 
 	return &Configuration{
 		PGSQL_HOST:     os.Getenv("PGSQL_HOST"),
+		API_VERSION:    os.Getenv("API_VERSION"),
 		PGSQL_PORT:     os.Getenv("PGSQL_PORT"),
 		PGSQL_USER:     os.Getenv("PGSQL_USER"),
 		PGSQL_PASSWORD: os.Getenv("PGSQL_PASSWORD"),
