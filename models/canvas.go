@@ -10,14 +10,17 @@ import (
 type Canvas struct {
 	UID            string         `gorm:"column:uniqueid;primaryKey" json:"uid"`
 	AccountName    string         `gorm:"column:account_name" json:"account_name"`
-	AccountUID     string         `gorm:"column:account_uid" json:"account_uid"`
+	CreatorUID     string         `gorm:"column:creator_uid" json:"creator_uid"`
 	CreatedDate    time.Time      `gorm:"column:created_date;autoCreateTime" json:"created_date"`
 	UpdatedDate    time.Time      `gorm:"column:updated_date;autoUpdateTime" json:"-"`
 	Status         string         `gorm:"column:initial_status;default:ARCHIVE" json:"status"`
+	Title          string         `gorm:"column:title" json:"title"`
+	Description    string         `gorm:"column:description" json:"description"`
+	Thumbnail      string         `gorm:"column:thumbnail_photo" json:"thumbnail_photo"`
 	CanvasPhoto    string         `gorm:"column:canvas_photo" json:"canvas_photo"`
-	Episodes       StringArray    `gorm:"column:episodes"  json:"episodes"`
-	MusicVideo     StringArray    `gorm:"column:music_video" json:"music_video"`
-	AccountProfile AccountProfile `gorm:"foreignKey:AccountUID;references:UID"`
+	EpisodeUIDs    StringArray    `gorm:"column:episode_uids"  json:"episode_uids"` // slice of episode uid + photo
+	MusicVideoUIDs StringArray    `gorm:"column:music_video_uids" json:"music_video_uids"`
+	AccountProfile AccountProfile `gorm:"foreignKey:CreatorUID;references:UID"`
 }
 
 func (c *Canvas) BeforeCreate(tx *gorm.DB) (err error) {
