@@ -1,6 +1,7 @@
 package interactors
 
 import (
+	"errors"
 	"time"
 
 	"readtoon_app/models"
@@ -47,6 +48,44 @@ func CreateAccountProfile(db *gorm.DB, body map[string]any) (int, string, any) {
 	return 7200, "success_create_account", account
 }
 
+func SignInAccount(db *gorm.DB, body map[string]any) (int, string, any) {
+	bodyAccess := utility.MappingUnmarshal(body["access"])
+	bodyPayload := utility.MappingUnmarshal(body["payload"])
+
+	if bodyAccess == nil || bodyPayload == nil {
+		return 7400, "cannot_empty:access_or_payload", nil
+	}
+
+	email, _ := bodyPayload["email"].(string)
+	password, _ := bodyPayload["password"].(string)
+
+	if email == "" || password == "" {
+		return 7401, "missing_required_fields:email_password", nil
+	}
+
+	// Cari akun berdasarkan email
+	var account models.AccountProfile
+	if err := db.Where("email = ?", email).First(&account).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 7404, "account_not_found", nil
+		}
+		return 7500, "failed_query_account", err.Error()
+	}
+
+	// Verifikasi password
+	if !utility.CheckPasswordHash(password, account.Password) {
+		return 7403, "invalid_credentials", nil
+	}
+
+	return 7200, "success_sign_in", map[string]any{
+		"uid":          account.UID,
+		"name":         account.Name,
+		"email":        account.Email,
+		"avatar_photo": account.AvatarPhoto,
+		"last_login":   time.Now(),
+	}
+}
+
 // ChangeName updates user's name
 
 func ChangeName(db *gorm.DB, body map[string]any) (int, string, any) {
@@ -71,7 +110,6 @@ func ChangeName(db *gorm.DB, body map[string]any) (int, string, any) {
 	return 7200, "success_change_name", nil
 }
 
-// ✅ CHANGE EMAIL
 func ChangeEmail(db *gorm.DB, body map[string]any) (int, string, any) {
 	bodyAccess := utility.MappingUnmarshal(body["access"])
 	bodyPayload := utility.MappingUnmarshal(body["payload"])
@@ -94,7 +132,6 @@ func ChangeEmail(db *gorm.DB, body map[string]any) (int, string, any) {
 	return 7200, "success_change_email", nil
 }
 
-// ✅ CHANGE PASSWORD
 func ChangePassword(db *gorm.DB, body map[string]any) (int, string, any) {
 	bodyAccess := utility.MappingUnmarshal(body["access"])
 	bodyPayload := utility.MappingUnmarshal(body["payload"])

@@ -32,6 +32,23 @@ func CreateAccountProfileController(c echo.Context) error {
 	})
 }
 
+// func SignInAccountController(c echo.Context) error {
+// 	var body map[string]any
+// 	if err := c.Bind(&body); err != nil {
+// 		return c.JSON(http.StatusBadRequest, map[string]any{
+// 			"status":  7400,
+// 			"message": "invalid_body_format",
+// 		})
+// 	}
+
+// 	status, message, result := interactors.SignInAccount()(database.DB, body)
+// 	return c.JSON(http.StatusOK, map[string]any{
+// 		"status":  status,
+// 		"message": message,
+// 		"data":    result,
+// 	})
+// }
+
 func ChangeNameController(c echo.Context) error {
 	var body map[string]any
 	if err := c.Bind(&body); err != nil {
